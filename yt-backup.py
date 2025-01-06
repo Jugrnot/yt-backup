@@ -1,3 +1,5 @@
+from sqlalchemy import text
+from datetime import timezone
 # yt-backup command line utility to backup youtube channels easily
 # Copyright (C) 2020  w0d4
 # This program is free software: you can redistribute it and/or modify
@@ -159,7 +161,7 @@ def persist_quota():
         return None
     stat_quota = Statistic()
     stat_quota.statistic_type = "used_quota"
-    stat_quota.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    stat_quota.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     stat_quota.statistic_value = str(used_quota_this_run)
     session.add(stat_quota)
     session.commit()
@@ -185,7 +187,7 @@ def print_quota_last_24_hours():
     logger.debug("Will print the quota used in the last 24h if the user wants to.")
     with engine.connect() as con:
         try:
-            rs = con.execute("SELECT SUM(statistic_value) AS used_quota_last_24h FROM statistics WHERE statistics.statistic_type = 'used_quota' AND statistics.statistic_date > DATE_SUB(NOW(), INTERVAL 1 DAY);")
+            rs = con.execute(text("SELECT SUM(statistic_value) AS used_quota_last_24h FROM statistics WHERE statistics.statistic_type = 'used_quota' AND statistics.statistic_date > DATE_SUB(NOW(), INTERVAL 1 DAY);"))
             for row in rs:
                 logger.info("Used quota during last 24h: " + str(row[0]))
         except:
@@ -218,7 +220,7 @@ def log_operation(duration, operation_type, operation_description):
     operation.duration = duration
     operation.operation_type = operation_type
     operation.operation_description = operation_description
-    operation.operation_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    operation.operation_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     session.add(operation)
     session.commit()
 
@@ -228,7 +230,7 @@ def set_status(new_status):
     if current_status is None:
         current_status = Statistic()
         current_status.statistic_type = "status"
-    current_status.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    current_status.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     current_status.statistic_value = new_status
     session.add(current_status)
     session.commit()
@@ -239,7 +241,7 @@ def set_currently_downloading(video_name):
     if currently_downloading is None:
         currently_downloading = Statistic()
         currently_downloading.statistic_type = "currently_downloading"
-    currently_downloading.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    currently_downloading.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     currently_downloading.statistic_value = video_name
     session.add(currently_downloading)
     session.commit()
@@ -250,7 +252,7 @@ def set_http_429_state():
     if http_429_state is None:
         http_429_state = Statistic()
         http_429_state.statistic_type = "http_429_state"
-    http_429_state.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    http_429_state.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     http_429_state.statistic_value = get_current_ytdl_ip()
     session.add(http_429_state)
     session.commit()
@@ -261,7 +263,7 @@ def clear_http_429_state():
     if http_429_state is None:
         http_429_state = Statistic()
         http_429_state.statistic_type = "http_429_state"
-    http_429_state.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    http_429_state.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     http_429_state.statistic_value = ""
     session.add(http_429_state)
     session.commit()
@@ -309,7 +311,7 @@ def set_quota_exceeded_state():
     if quota_exceeded_state is None:
         quota_exceeded_state = Statistic()
         quota_exceeded_state.statistic_type = "quota_exceeded_state"
-    quota_exceeded_state.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    quota_exceeded_state.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     quota_exceeded_state.statistic_value = "Quota exceeded"
     session.add(quota_exceeded_state)
     session.commit()
@@ -369,7 +371,7 @@ def log_statistic(statistic_type, statistic_value):
     statistic = Statistic()
     statistic.statistic_type = statistic_type
     statistic.statistic_value = statistic_value
-    statistic.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    statistic.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     session.add(statistic)
     session.commit()
 
@@ -1058,7 +1060,7 @@ def download_videos():
             logger.error(
                 "Could not find the downloaded video file. Maybe there was a problem during download. Will retry in next run.")
             continue
-        video.downloaded = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        video.downloaded = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         video.runtime = get_video_duration(video_file)
         logger.debug("Video runtime was set to " + str(video.runtime) + " seconds")
         video.resolution = get_video_resolution(video_file)
@@ -1552,7 +1554,7 @@ def modify_playlist():
         logger.error("Given playlist-id is not in database. Please find correct one with \"python3 yt-backup.py list_playlists\" command or add channel with playlist first.")
         return None
     if download_from == "now":
-        download_from = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        download_from = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
     if download_from == "all":
         playlist.download_from_date = None
         videos = session.query(Video).filter(Video.playlist == playlist.id)
@@ -1610,11 +1612,11 @@ def verify_and_update_data_model():
         current_data_model_version = 1
         current_data_model_version_stat.statistic_value = str(current_data_model_version)
         current_data_model_version_stat.statistic_type = "data_model_version"
-        current_data_model_version_stat.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        current_data_model_version_stat.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         with engine.connect() as con:
             try:
-                rs = con.execute('ALTER TABLE playlists ADD download_from_date DATETIME NULL DEFAULT NULL AFTER channel_id;')
-                rs = con.execute('ALTER TABLE videos ADD upload_date DATETIME NULL DEFAULT NULL AFTER download_required;')
+                rs = con.execute(text('ALTER TABLE playlists ADD download_from_date DATETIME NULL DEFAULT NULL AFTER channel_id;'))
+                rs = con.execute(text('ALTER TABLE videos ADD upload_date DATETIME NULL DEFAULT NULL AFTER download_required;'))
                 logger.info("Data model has been updated to " + str(current_data_model_version))
             except sqlalchemy.exc.OperationalError:
                 logger.info("Table columns are already existing.")
@@ -1628,10 +1630,10 @@ def verify_and_update_data_model():
         current_data_model_version = 2
         current_data_model_version_stat.statistic_value = str(current_data_model_version)
         current_data_model_version_stat.statistic_type = "data_model_version"
-        current_data_model_version_stat.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        current_data_model_version_stat.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         with engine.connect() as con:
             try:
-                rs = con.execute('ALTER TABLE channels ADD offline INT NULL AFTER channel_name;')
+                rs = con.execute(text('ALTER TABLE channels ADD offline INT NULL AFTER channel_name;'))
                 logger.info("Data model has been updated to " + str(current_data_model_version))
             except sqlalchemy.exc.OperationalError:
                 logger.info("Table columns are already existing.")
@@ -1645,10 +1647,10 @@ def verify_and_update_data_model():
         current_data_model_version = 3
         current_data_model_version_stat.statistic_value = str(current_data_model_version)
         current_data_model_version_stat.statistic_type = "data_model_version"
-        current_data_model_version_stat.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        current_data_model_version_stat.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         with engine.connect() as con:
             try:
-                rs = con.execute('ALTER TABLE playlists ADD etag VARCHAR(255) NULL AFTER download_from_date;')
+                rs = con.execute(text('ALTER TABLE playlists ADD etag VARCHAR(255) NULL AFTER download_from_date;'))
                 logger.info("Data model has been updated to " + str(current_data_model_version))
             except sqlalchemy.exc.OperationalError:
                 logger.info("Table columns are already existing.")
@@ -1663,11 +1665,11 @@ def verify_and_update_data_model():
         current_data_model_version = 4
         current_data_model_version_stat.statistic_value = str(current_data_model_version)
         current_data_model_version_stat.statistic_type = "data_model_version"
-        current_data_model_version_stat.statistic_date = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        current_data_model_version_stat.statistic_date = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         with engine.connect() as con:
             try:
                 rs = con.execute(
-                    'ALTER TABLE channels ADD channel_country VARCHAR(255) NULL DEFAULT NULL AFTER offline; ')
+                    text('ALTER TABLE channels ADD channel_country VARCHAR(255) NULL DEFAULT NULL AFTER offline; '))
                 logger.info("Data model has been updated to " + str(current_data_model_version))
                 session.add(current_data_model_version_stat)
                 session.commit()
